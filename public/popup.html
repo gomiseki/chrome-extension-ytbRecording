@@ -7,20 +7,40 @@
 </head>
 <body>
   <div class="app">
-    <p class="counter-label">Counter</p>
-    <div id="counter" class="counter"></div>
-    <div class="button-container">
-      <button id="decrementBtn" class="button">-</button>
-      <button id="incrementBtn" class="button">+</button>
+
+    <div class="soundContainer">
+        <div class="btnContainer">
+          <button  type="button" id="audioBtn" disabled><img src="./icons/audio.svg" alt="audio"></button>
+        </div>
+        <input id="audio" value='유튜브 영상 페이지에서 실행해주세요'>
     </div>
 
-    <hr class="divider" />
+    <div class="micContainer">
+        <div class="btnContainer">
+          <button  type="button" id="microphoneBtn" disabled><img src="./icons/mic.svg" alt="delete"></button>
+        </div>
+        <input id="mic" value='연결된 마이크가 없습니다.''>
+    </div>
 
-    <p class="title">Chrome Extension is Ready!</p>
-    <p class="subtitle">Start by updating <code>popup.html</code></p>
+    <div class="rcdContainer">
+
+      <div  class="innerContainer">
+          <div class="recordContainer">
+            <button  type="button"  id="record" disabled><img src="./icons/record.svg" alt="record" id="recordImg"></button>
+          </div>
+          <div class="removeContainer">
+            <button  type="button" id="remove" disabled><img src="./icons/delete.svg" alt="delete"></button>
+          </div>
+          <div id="audioContainer">
+            <input type="" id="recordState" value="-- : --">
+          </div>
+      </div>
+    </div>
+    <iframe src='' allow='microphone *' id="frame"></iframe>
   </div>
 
-  <script src="popup.js"></script>
+
+  <script type="module" src="popup.js"></script>
 
   <!--
     This HTML file opens when you click on icon from the toolbar.

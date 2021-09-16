@@ -16,5 +16,10 @@
     "webpack": "^4.46.0",
     "webpack-cli": "^3.3.12",
     "webpack-merge": "^5.8.0"
+  },
+  "dependencies": {
+    "audio-buffer-from": "^1.1.1",
+    "audio-buffer-utils": "^5.1.2",
+    "recordrtc": "^5.6.2"
   }
 }
