@@ -15,8 +15,13 @@
 
 
 
-var micBlob = false;
-var micRecorder = false;
+var totalBlob = false;
+var totalRecorder = false;
+
+var voiceBlob = false;
+var voiceRecorder = false;
+
+var audioContext = new AudioContext();
 
 function blobToBase64(blob) {
   return new Promise((resolve, _) => {
@@ -31,43 +36,31 @@ chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 
     //popup의 record버튼 클릭 시 메시지 교환
-    if (request.micRedord && micRecorder){
+    if (request.micRedord && totalRecorder){
+
+      //youtube on/off
       document.getElementsByClassName('ytp-play-button ytp-button')[0].click()
-      console.log(request)
       if(request.micRedord==='recording start'){
-        chunks = [];
-        micRecorder.start(10);
+        totalChunks = [];
+        totalRecorder.start(10);
       
       }
       else{
-        micRecorder.stop();
-        micBlob = new Blob(chunks, { 'type' : 'audio/flac' });
-        var blobString = blobToBase64(micBlob);
-        blobString.then((result)=>
-        chrome.storage.local.set({recordedSong: result}, function() {
-          sendResponse({recording:'complete'})
-        })
-       ).catch(()=>
-       sendResponse({recording:'fail'}));
-      
+        totalRecorder.stop();
+        totalBlob = new Blob(totalChunks, { 'type' : 'audio/flac' });
+        var totalBlobString = blobToBase64(totalBlob);
+        totalBlobString.then((result)=>{
+          chrome.storage.local.set({recordedAudio: result},()=>{
+            sendResponse({recording:'success'})
+          })
+        }
+        )
       } 
       
     }
-    else if(request.a){
-      sendResponse({url:window.location})
-    }
     //마이크 장치 권한
-    else if(request.getSoundStream){
-      navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(stream) {
-          console.log(request.getSoundStream)
-          stream.getTrackById(request.getSoundStream)
-          console.log(stream.getAudioTracks())
-          micRecorder =  new MediaRecorder(stream);
-          window.chunks = [];
-          micRecorder.ondataavailable = e => {
-            chunks.push(e.data)
-          }
+    else if(request.getMic){
+          audioContext = new AudioContext();
           navigator.mediaDevices.enumerateDevices()
             .then(function(devices) {
               console.log(devices)
@@ -85,14 +78,30 @@ chrome.runtime.onMessage.addListener(
                 message:'mic undefined',
               });
             });
-      })
-      .catch(function(err) {
-          sendResponse({
-            message:'mic undefined',
-          })
-        })
+      
     }
 
+    else if(request.getStream){
+      navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(micStream) {
+          var audioStream = document.querySelectorAll('video.video-stream ')[0].captureStream()
+          
+          var audio_voice = audioContext.createMediaStreamSource(micStream);
+          var audio_inst = audioContext.createMediaStreamSource(audioStream);
+
+          var mixedDest = audioContext.createMediaStreamDestination();
+
+          audio_voice.connect(mixedDest)
+          audio_inst.connect(mixedDest)
+
+          totalRecorder =  new MediaRecorder(mixedDest.stream);
+          window.totalChunks = [];
+          totalRecorder.ondataavailable = e => {
+            totalChunks.push(e.data)
+          }
+    
+    })
+  }
     //addListner내부 함수는 return true미 반환시 미작동
     return true
 })

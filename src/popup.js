@@ -16,59 +16,48 @@ const mic = document.getElementById('mic');
 const record = document.getElementById('record');
 const remove =  document.getElementById('remove');
 
-//tab audio 관련 변수
-
 
 //장치 연결상태 정의
-function addSoundInfo(callback){
+function addSoundInfo(){
     chrome.tabs.query({active: true,currentWindow: true}, function (tabs) {
     if (tabs[0].url.split('v=')[0]=='https://www.youtube.com/watch?'){
-        chrome.tabs.sendMessage(tabs[0].id,
-            {
-              a: 'a'
-            },function(response){
-                console.log(window.location)
-                document.getElementById('frame').src = response.url
-                navigator.mediaDevices.getUserMedia({audio:true})
-                .then(function(stream) {
-                    console.log(stream)
+            chrome.tabs.sendMessage(tabs[0].id,
+                {
+                    getStream: 'fdf'
                 })
-                audio.value= tabs[0].title;
-                audioBtn.style.backgroundColor='aquamarine';
-            })
-        }
+        audio.value= tabs[0].title;
+        audioBtn.style.backgroundColor='aquamarine';
+    }
     else{
         audio.value='유튜브 영상 페이지에서 실행해주세요';
         audioBtn.style.backgroundColor='lightcoral';
     }
-    callback()
+    completeRecord()
   })
 }
 
-function addMicInfo(){
-    chrome.tabCapture.capture({audio:true, video:false}, (stream)=>{
-        var context = new AudioContext();
-        context.createMediaStreamSource(stream).connect(context.destination);
-        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            chrome.tabs.sendMessage(tabs[0].id,
-                {
-                  getSoundStream: 'URL.createObjectURL(stream)'
-                },
-                function(response) {
-                    console.log(response)
-                    if(response.message!=='mic undefined'){
-                        mic.value = response.message
-                        micBtn.style.backgroundColor='aquamarine';
-                    }
-                    else{
-                        mic.value = '연결된 마이크가 없습니다.'
-                        micBtn.style.backgroundColor='lightcoral';
-                    }
-                    completeRecord()
+function addMicInfo(callback){
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.tabs.sendMessage(tabs[0].id,
+            {
+                getMic:'mic'
+            },
+            function(response) {
+                console.log(response)
+                if(response.message!=='mic undefined'){
+                    mic.value = response.message
+                    micBtn.style.backgroundColor='aquamarine';
                 }
-              )
-        })
+                else{
+                    mic.value = '연결된 마이크가 없습니다.'
+                    micBtn.style.backgroundColor='lightcoral';
+                }
+                callback()
+                
+            }
+            )
     })
+    
 }   
 
 
@@ -123,23 +112,16 @@ function readyRecord(){
             document.getElementById('recordState').value = '유튜브 영상과 녹음장치가 필요합니다.'
             document.getElementById('record').disabled = true;
         }
-    }, 2000);
+    }, 1000);
 }
 
 function completeRecord(){
-    chrome.storage.local.get(['recordedSong'],(result)=>{
-        if (result.recordedSong !== undefined){
+    chrome.storage.local.get(['recordedAudio'],(result)=>{
+        if (result.recordedAudio !== undefined){
+            console.log(result.recordedAudio)
             remove.disabled = false;
             record.disabled = true;
-            const song = result.recordedSong;
-            document.getElementById('audioContainer').style.flexDirection = 'column';
-            document.getElementById('audioContainer').style.alignItems = 'start';
-            document.getElementById('audioContainer').innerHTML = `<p>voice only</p><audio controls id='song' src='${song}'>이게안되네....</audio>`
-            /*chrome.storage.local.get(['recordedInst'],(result)=>{
-                console.log(result)
-                document.getElementById('audioContainer').innerHTML += `<p>mixed</p><audio controls id='mixed' src='${mixTwoBlob(result.recordedInst, song)}' >이게안되네....</audio>`
-                
-        })*/
+            document.getElementById('audioContainer').innerHTML = `<p>mixed audio</p><audio controls id='song' src='${result.recordedAudio}'>이게안되네....</audio>`
         }
         else{
             readyRecord();
@@ -150,42 +132,19 @@ function completeRecord(){
 
 let recording = false;
 
-function recordStart(){
-    chunks = [];
-    var context = new AudioContext();
-
-    chrome.tabCapture.capture({audio:true, video:false}, (stream)=>{
-        context.createMediaStreamSource(stream).connect(context.destination);
-        tabRecorder = new MediaRecorder(stream);
-        tabRecorder.ondataavailable = e => {
-            chunks.push(e.data)
-        }
-        tabRecorder.start(100);
-      })
-}
-
-
-function recordStop(){
-    tabRecorder.stop();
-    tabAudioBlob = new Blob(chunks, { 'type' : 'audio/flac' });
-    var blobString = blobToBase64(tabAudioBlob);
-    blobString.then((result)=>
-    chrome.storage.local.set({recordedInst: result},()=>
-    completeRecord())
-    )
-}
-
 function playRecord(){
     if(!recording){
         recording = true;
         chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-            chrome.tabs.sendMessage(tabs[0].id,
-                {
-                  micRedord:'recording start'
-                }    
-            )
+            setTimeout(function(){
+                chrome.tabs.sendMessage(tabs[0].id,
+                    {
+                      micRedord:'recording start'
+                    }    
+                )
+                onRecord();
+            },100)
         })
-            onRecord();
     }
 
     else if(recording){
@@ -240,4 +199,4 @@ function mixTwoBlob(inst,song){
 //이벤트 정의
 remove.addEventListener('click', deleteRecord)
 record.addEventListener('click', playRecord);
-document.addEventListener('DOMContentLoaded', addSoundInfo(addMicInfo));
+document.addEventListener('DOMContentLoaded', addMicInfo(addSoundInfo));
